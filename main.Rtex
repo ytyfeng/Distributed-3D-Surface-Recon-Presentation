@@ -119,7 +119,7 @@ With the progress of aerial acquisition tools such as drones and LiDAR, it is no
 \begin{enumerate}
     \item Existing parallel methods:
     \begin{itemize}
-        \item Multiple threads on a single node\footnote{Julie Digne. An Analysis and Implementation of a Parallel Ball Pivoting Algorithm. Image Processing On Line, 4:149–168, 2014}
+        \item Multiple threads on a single node\footnotemark 
             \begin{itemize}
                 \item Can save time but limited by memory capacity of the node
             \end{itemize}
@@ -133,21 +133,21 @@ With the progress of aerial acquisition tools such as drones and LiDAR, it is no
     \begin{itemize}
         \item Explicit, geometric reconstruction
         \begin{itemize}
-            \item Ball-pivoting algorithm\footnote{Fausto Bernardini, Joshua Mittleman, Holly Rushmeier, Claudio Silva, and GabrielTaubin. The ball-pivoting algorithm for surface reconstruction. IEEE Transactionson Visualization and Computer Graphics, 5(4):349–359, Oct 1999.}
+            \item Ball-pivoting algorithm\footnotemark 
             \\
             \textit{Radius selection problem, holes, require uniformly sampled point clouds}
 
-            \item Delaunay-based
+            \item Delaunay-based\footnotemark
             \\
             \textit{Provably correct, but require densely-sampled, noise-free point clouds}
                
         \end{itemize}
         \item Implicit, function-fitting reconstruction
         \begin{itemize}
-            \item Poisson Reconstruction\footnote{Michael Kazhdan, Matthew Bolitho, and Hugues Hoppe. Poisson surface reconstruc-tion. InProceedings of the Fourth Eurographics Symposium on Geometry Processing,SGP 06, page 6170, Goslar, DEU, 2006. Eurographics Association.}\\
+            \item Poisson Reconstruction\footnotemark\\
             \textit{Fit an implicit function to indicator gradient from oriented points (point + normal)\\
             Indicator gradient: 0 almost everywhere, 1 at surface;  since indicator gradient is equal to inward surface normal (normalized)\\
-            Extract 0-th level isosurface from implicit function using Marching Cubes\footnote{William E. Lorensen and Harvey E. Cline.  Marching cubes: A high resolution 3dsurface construction algorithm.  InProceedings of the 14th Annual Conference onComputer Graphics and Interactive Techniques, SIGGRAPH 87, page 163169, NewYork, NY, USA, 1987. Association for Computing Machinery.}\\
+            Extract 0-th level isosurface from implicit function using Marching Cubes\footnotemark\\
             Adaptive octree to represent the implicit function and to solve the Poisson problem. Increasing octree max depth increases mesh resolution (triangles and file size), time, and memory by a factor of 4.
             }
         \end{itemize}
@@ -162,8 +162,6 @@ With the progress of aerial acquisition tools such as drones and LiDAR, it is no
     \includegraphics[width=\textwidth]{bpa_poisson.png}
     \caption{BPA (left) vs. Poisson (right)}
 \end{figure}
-
-Notes
 
 \end{frame}
 
@@ -258,7 +256,7 @@ squarednode/.style={rectangle, draw=blue!60, fill=blue!15, very thick, minimum s
     \item Normal Estimation
     \begin{itemize}
         \item Nearest neighbor search within a search radius and/or $k$-neighbors.  
-        \item Principal component analysis (PCA) finds an orthogonal basis that best represents a given neighborhood of points. It finds the best-fitting plane by minimizing the average squared distance from a neighborhood point to the plane. 
+        \item Principal component analysis (PCA) finds an orthogonal basis that best represents a given neighborhood of points\footnotemark. It finds the best-fitting plane by minimizing the average squared distance from a neighborhood point to the plane. 
         \item The normal is a unit vector orthogonal to the plane. 
     \end{itemize}
     \item Poisson Reconstruction
@@ -343,12 +341,21 @@ squarednode/.style={rectangle, draw=blue!60, fill=blue!15, very thick, minimum s
         \item Submit job from the shell script
         \item Another Python script handles processing and meshing for each chunk/process
         \begin{itemize}
-            \item Open3D's Python API is used for its implementation of basic 3D algorithms and 3D data structures
+            \item Open3D's Python API is used for its implementation of basic 3D algorithms and 3D data structures\footnotemark.
         \end{itemize}
     \end{enumerate}
 \end{frame}
 
-
+\begin{frame}{References}
+    \footnotetext[1]{Julie Digne. An Analysis and Implementation of a Parallel Ball Pivoting Algorithm. Image Processing On Line, 4:149–168, 2014}
+    \footnotetext[2]{Fausto Bernardini, Joshua Mittleman, Holly Rushmeier, Claudio Silva, and Gabriel Taubin. The ball-pivoting algorithm for surface reconstruction. IEEE Transactions on Visualization and Computer Graphics, 5(4):349–359, Oct 1999.}
+    \footnotetext[3]{Fr{\'e}d{\'e}ric Cazals and Joachim Giese n.Delaunay Triangulation Based Surface Reconstruction, pages 231–276. Springer Berlin Heidelberg, Berlin, Heidelberg, 2006.}
+    \footnotetext[4]{Michael Kazhdan, Matthew Bolitho, and Hugues Hoppe. Poisson surface reconstruction. In Proceedings of the Fourth Eurographics Symposium on Geometry Processing, SGP 06, page 6170, Goslar, DEU, 2006. Eurographics Association.}
+    \footnotetext[5]{William E. Lorensen and Harvey E. Cline.  Marching cubes: A high resolution 3d surface construction algorithm.  In Proceedings of the 14th Annual Conference on Computer Graphics and Interactive Techniques, SIGGRAPH 87, page 163169, New York, NY, USA, 1987. Association for Computing Machinery.}
+    \footnotetext[6]{Hugues Hoppe, Tony DeRose, Tom Duchamp, John McDonald, and Werner Stuetzle. Surface reconstruction from unorganized points. SIGGRAPH Comput. Graph.,26(2):7178, July 1992.}
+    \footnotetext[7]{Qian-Yi Zhou, Jaesik Park, and Vladlen Koltun. Open3D: A modern library for 3D data processing. arXiv:1801.09847, 2018.}
+    
+\end{frame}
 
 
 \begin{frame}[standout]
