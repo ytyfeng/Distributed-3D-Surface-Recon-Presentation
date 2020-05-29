@@ -1,0 +1,358 @@
+\documentclass[10pt]{beamer}
+\usepackage[utf8x]{inputenc}
+\usepackage{hyperref}
+\usepackage{fontawesome}
+\usepackage{graphicx}
+\usepackage[english]{babel}
+
+\usepackage{tikz}
+% for drawing diagrams
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes,snakes,arrows}
+
+% for subfigures
+\usepackage{subcaption}
+\usepackage{kantlipsum}
+\captionsetup{compatibility=false}
+
+% ------------------------------------------------------------------------------
+% Use the beautiful metropolis beamer template
+% ------------------------------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage{fontawesome}
+\usepackage{FiraSans} 
+\mode<presentation>
+{
+  \usetheme[progressbar=foot,numbering=fraction,background=light]{metropolis} 
+  \usecolortheme{default} % or try albatross, beaver, crane, ...
+  \usefonttheme{default}  % or try serif, structurebold, ...
+  \setbeamertemplate{navigation symbols}{}
+  \setbeamertemplate{caption}[numbered]
+  %\setbeamertemplate{frame footer}{My custom footer}
+} 
+
+% ------------------------------------------------------------------------------
+% beamer doesn't have texttt defined, but I usually want it anyway
+% ------------------------------------------------------------------------------
+\let\textttorig\texttt
+\renewcommand<>{\texttt}[1]{%
+  \only#2{\textttorig{#1}}%
+}
+
+% ------------------------------------------------------------------------------
+% minted
+% ------------------------------------------------------------------------------
+\usepackage{minted}
+
+
+% ------------------------------------------------------------------------------
+% tcolorbox / tcblisting
+% ------------------------------------------------------------------------------
+\usepackage{xcolor}
+\definecolor{codecolor}{HTML}{FFC300}
+
+\usepackage{tcolorbox}
+\tcbuselibrary{most,listingsutf8,minted}
+
+\tcbset{tcbox width=auto,left=1mm,top=1mm,bottom=1mm,
+right=1mm,boxsep=1mm,middle=1pt}
+
+\newtcblisting{myr}[1]{colback=codecolor!5,colframe=codecolor!80!black,listing only, 
+minted options={numbers=left, style=tcblatex,fontsize=\tiny,breaklines,autogobble,linenos,numbersep=3mm},
+left=5mm,enhanced,
+title=#1, fonttitle=\bfseries,
+listing engine=minted,minted language=r}
+
+
+% ------------------------------------------------------------------------------
+% Listings
+% ------------------------------------------------------------------------------
+\definecolor{mygreen}{HTML}{37980D}
+\definecolor{myblue}{HTML}{0D089F}
+\definecolor{myred}{HTML}{98290D}
+
+\usepackage{listings}
+
+% the following is optional to configure custom highlighting
+\lstdefinelanguage{XML}
+{
+  morestring=[b]",
+  morecomment=[s]{<!--}{-->},
+  morestring=[s]{>}{<},
+  morekeywords={ref,xmlns,version,type,canonicalRef,metr,real,target}% list your attributes here
+}
+
+\lstdefinestyle{myxml}{
+language=XML,
+showspaces=false,
+showtabs=false,
+basicstyle=\ttfamily,
+columns=fullflexible,
+breaklines=true,
+showstringspaces=false,
+breakatwhitespace=true,
+escapeinside={(*@}{@*)},
+basicstyle=\color{mygreen}\ttfamily,%\footnotesize,
+stringstyle=\color{myred},
+commentstyle=\color{myblue}\upshape,
+keywordstyle=\color{myblue}\bfseries,
+}
+
+
+% ------------------------------------------------------------------------------
+% The Document
+% ------------------------------------------------------------------------------
+\title{Distributed 3D Surface Reconstruction from Point Clouds}
+\author{Ty Feng}
+\date{May 2020}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\begin{frame}[fragile,allowframebreaks]{Intro}
+With the progress of aerial acquisition tools such as drones and LiDAR, it is now possible to have 3D range scans of large urban scenes. The result of such scans is registered and aligned to the same coordinate system and then further processed and reconstructed to 3D mesh models. However, processing and reconstructing gigabytes of large-scale point cloud data is a challenging task. It requires significant computing powers and memory usage that typical personal computers cannot afford. Aside from the memory challenges, processing and reconstructing large point clouds requires significant amount of computing time.
+\framebreak
+
+\begin{enumerate}
+    \item Existing parallel methods:
+    \begin{itemize}
+        \item Multiple threads on a single node\footnote{Julie Digne. An Analysis and Implementation of a Parallel Ball Pivoting Algorithm. Image Processing On Line, 4:149–168, 2014}
+            \begin{itemize}
+                \item Can save time but limited by memory capacity of the node
+            \end{itemize}
+        \item Out-of-core methods
+            \begin{itemize}
+                \item Can store more data into disk and swap into memory when needed, but time is bottlenecked by computer's I/O speed
+            \end{itemize}
+    \end{itemize}
+\framebreak    
+    \item Surface reconstruction:
+    \begin{itemize}
+        \item Explicit, geometric reconstruction
+        \begin{itemize}
+            \item Ball-pivoting algorithm\footnote{Fausto Bernardini, Joshua Mittleman, Holly Rushmeier, Claudio Silva, and GabrielTaubin. The ball-pivoting algorithm for surface reconstruction. IEEE Transactionson Visualization and Computer Graphics, 5(4):349–359, Oct 1999.}
+            \\
+            \textit{Radius selection problem, holes, require uniformly sampled point clouds}
+
+            \item Delaunay-based
+            \\
+            \textit{Provably correct, but require densely-sampled, noise-free point clouds}
+               
+        \end{itemize}
+        \item Implicit, function-fitting reconstruction
+        \begin{itemize}
+            \item Poisson Reconstruction\footnote{Michael Kazhdan, Matthew Bolitho, and Hugues Hoppe. Poisson surface reconstruc-tion. InProceedings of the Fourth Eurographics Symposium on Geometry Processing,SGP 06, page 6170, Goslar, DEU, 2006. Eurographics Association.}\\
+            \textit{Fit an implicit function to indicator gradient from oriented points (point + normal)\\
+            Indicator gradient: 0 almost everywhere, 1 at surface;  since indicator gradient is equal to inward surface normal (normalized)\\
+            Extract 0-th level isosurface from implicit function using Marching Cubes\footnote{William E. Lorensen and Harvey E. Cline.  Marching cubes: A high resolution 3dsurface construction algorithm.  InProceedings of the 14th Annual Conference onComputer Graphics and Interactive Techniques, SIGGRAPH 87, page 163169, NewYork, NY, USA, 1987. Association for Computing Machinery.}\\
+            Adaptive octree to represent the implicit function and to solve the Poisson problem. Increasing octree max depth increases mesh resolution (triangles and file size), time, and memory by a factor of 4.
+            }
+        \end{itemize}
+    \end{itemize}
+    
+    
+\end{enumerate}
+
+\framebreak
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{bpa_poisson.png}
+    \caption{BPA (left) vs. Poisson (right)}
+\end{figure}
+
+Notes
+
+\end{frame}
+
+\section{Our Method}
+\begin{frame}[fragile,allowframebreaks]{Our method}
+Fully-independent, distributed, multi-node method
+\framebreak
+
+
+\begin{figure}
+\centering
+\begin{tikzpicture}[scale=0.8, every node/.style={transform shape},
+squarednode/.style={rectangle, draw=blue!60, fill=blue!15, very thick, minimum size=0.2in},
+]
+%Nodes
+\node[squarednode]      (chunking)       {Chunking};
+\node[draw=none,fill=none] (pc) [left=of chunking] {Entire point cloud in .ply format};
+\node[draw=none,fill=none] (chunk) [right=of chunking] {point cloud chunks};
+\node[squarednode]      (analysis)      [below=of chunking] {Analysis};
+\node[draw=none, fill=none] (bbox) [right=of analysis] {add overlapping boundary}; 
+\node[squarednode]      (normal)       [below=of analysis] {Normal Estimation};
+\node[draw=none, fill=none] (plane) [right=of normal] {$k$NN \& PCA}; 
+\node[squarednode]      (poisson)       [below=of normal] {Poisson Reconstruction};
+\node[squarednode]      (merging)       [below=of poisson] {Merging};
+\node[draw=none, fill=none] () [right=of merging] {cropping back to original boundary};
+%Lines
+\draw[->] (pc.east) -- (chunking.west);
+\draw[->] (chunking.south) -- (analysis.north);
+\draw[->] (analysis.south) -- (normal.north);
+\draw[->] (normal.south) -- (poisson.north);
+\draw[->] (poisson.south) -- (merging.north);
+\end{tikzpicture}
+\caption{Our reconstruction pipeline}
+\label{fig:pipeline}
+\end{figure}
+
+\framebreak
+
+\begin{enumerate}
+    \item Chunking Point Clouds 
+    \begin{itemize}
+        \item Chunk point clouds by $x$ and $y$ axes since the range of $z$ values are relatively small in urban scenes
+        \item Compute the axis-aligned bounding box of the point cloud (min and max bounds). 
+        \item Compute an $x$ by $y$ grid for the point cloud's bounding box. 
+        \item Crop the point cloud by the $x*y$ bounding boxes. Note that while the grid size is the same, the ultimate bounding box for point cloud chunks can be different because some chunks may not fill an entire grid.
+    \end{itemize}
+\framebreak        
+    \item Overlapping Boundaries
+    \begin{itemize}
+        \item Chunking cuts open closed shapes and may create holes in the mesh. It may cause implicit reconstruction methods to produce degraded reconstruction in areas with open shapes and large holes (i.e. edges of a chunk). 
+        \item To compensate for the degraded mesh quality along the edges of a chunk, we can add an overlap to each chunk before meshing.
+        \item In practice, a 5\% overlap is sufficient and would not require significantly more memory usage.
+    \end{itemize}
+    \begin{figure}
+\centering
+\begin{tikzpicture}
+ 
+\draw[blue, thick, fill=blue!5] (0,0) rectangle (1,1);
+\draw[blue, thick, fill=blue!5] (1,0) rectangle (2,1);
+\draw[blue, thick, fill=blue!5] (2,0) rectangle (3,1);
+\draw[blue, thick, fill=blue!5] (0,1) rectangle (1,2);
+\draw[blue, thick, fill=blue!5] (1,1) rectangle (2,2);
+\draw[blue, thick, fill=blue!5] (2,1) rectangle (3,2);
+\draw[blue, thick, fill=blue!5] (0,2) rectangle (1,3);
+\draw[blue, thick, fill=blue!5] (1,2) rectangle (2,3);
+\draw[blue, thick, fill=blue!5] (2,2) rectangle (3,3);
+
+\draw[magenta, thin] (-0.05,-0.05) rectangle (1.05,1.05);
+\draw[magenta, thin] (0.95,-0.05) rectangle (2.05,1.05);
+\draw[magenta, thin] (1.95,-0.05) rectangle (3.05,1.05);
+\draw[magenta, thin] (-0.05,0.95) rectangle (1.05,2.05);
+\draw[magenta, thin] (0.95,0.95) rectangle (2.05,2.05);
+\draw[magenta, thin] (1.95,0.95) rectangle (3.05,2.05);
+\draw[magenta, thin] (-0.05,1.95) rectangle (1.05,3.05);
+\draw[magenta, thin] (0.95,1.95) rectangle (2.05,3.05);
+\draw[magenta, thin] (1.95,1.95) rectangle (3.05,3.05);
+ 
+\end{tikzpicture}
+\caption{Adding overlapping boundary to each chunk. Blue boxes represent original bounding boxes. Magenta boxes represent bounding boxes with overlapping boundary. After meshing chunks with overlapping boundary, the mesh can be cropped back to its original boundary to ensure mesh quality along the edges. }
+\label{fig:overlap}
+\end{figure}
+
+\framebreak
+    \item Fully-independent, distributed, multi-node processing
+        \begin{itemize}
+            \item After chunking a point cloud into manageable chunks, we distribute the subsequent processing and meshing of each chunk as an independent process on different nodes on an HPC cluster. 
+            \item Fully-independent processes because chunking fully separates data; the failure of one process does not have an impact on other processes.
+            \item Memory usage is bound by the capacity of a node, but chunking and distributed processing on multiple nodes reduce memory needed for each node.
+            \item Each chunk of point cloud is processed and meshed with a single process from start to finish, so it is easier to debug by simply reading the output and error log associated with a particular point cloud chunk.
+        \end{itemize}
+\framebreak        
+    \item Normal Estimation
+    \begin{itemize}
+        \item Nearest neighbor search within a search radius and/or $k$-neighbors.  
+        \item Principal component analysis (PCA) finds an orthogonal basis that best represents a given neighborhood of points. It finds the best-fitting plane by minimizing the average squared distance from a neighborhood point to the plane. 
+        \item The normal is a unit vector orthogonal to the plane. 
+    \end{itemize}
+    \item Poisson Reconstruction
+    \begin{itemize}
+        \item Point cloud with normals can be meshed using Poisson Reconstruction with a user-specified octree depth.
+    \end{itemize}
+\framebreak
+    \item Merging
+    \begin{itemize}
+        \item Since the mesh was reconstructed from the point cloud with overlapping boundary, we would need to crop it back to its original boundary. This can be done with the original bounding box information computed from the first step.
+        \item In practice, cropping meshes will cut through triangles and create gaps. To address this, we can crop the mesh with a 1\% overlap by scaling the original bounding box by 1\%.  
+    \end{itemize}
+    \framebreak
+    \item Reconstruction at Higher Resolution
+    \begin{itemize}
+        \item Since we can reduce memory usage by chunking a point cloud into manageable chunks, we can also further chunking a point cloud to reconstruct at a higher resolution. We can offset the increased memory usage due to increase in resolution/octree depth by reducing the chunk size.
+        \item Increasing octree depth increases time, memory usage, and number of triangles by roughly a factor of 4.
+    \end{itemize}
+    
+\begin{table}
+    \caption{Time and memory usage when increasing Poisson depth for a chunk of point cloud with 113 million points}
+    \centering
+    \begin{tabular}{|l|l|l|l|} % |p{2.5cm}|p{3cm}|p{3cm}|p{3cm}|
+    \hline
+    Depth & Time & Maximum Memory & Triangles\\
+    \hline
+    8   &  141.46 sec  & 243 MB & 202,163  \\
+    \hline
+    9   & 234.90 sec &  629 MB & 957,104\\
+    \hline
+    10    & 677.01 sec  & 1980 MB & 4,524,372\\
+    \hline
+    11   &  2663.84 sec & 6646 MB & 20,857,780\\
+    \hline
+    12 & 10985.97 sec & 23781 MB & 97,923,718 \\
+    \hline
+    \end{tabular}
+    \label{tab:timeMemPoisson}
+\end{table}
+
+    \begin{figure}
+    %\centering
+    \begin{subfigure}[b]{0.24\textwidth}
+            \centering
+            \includegraphics[width=\textwidth]{img/car-depth8.jpeg}
+            \caption{{Depth 8}}    
+        \end{subfigure}
+        \quad
+        \begin{subfigure}[b]{0.24\textwidth}  
+            \centering 
+            \includegraphics[width=\textwidth]{img/car-depth9.jpeg}
+            \caption{{Depth 9}}     
+        \end{subfigure}
+        \vskip\baselineskip
+        \begin{subfigure}[b]{0.24\textwidth}   
+            \centering 
+            \includegraphics[width=\textwidth]{img/car-depth10.jpeg}
+            \caption{{Depth 10}}    
+        \end{subfigure}
+        \quad
+        \begin{subfigure}[b]{0.24\textwidth}   
+            \centering 
+            \includegraphics[width=\textwidth]{img/car-depth11.jpeg}
+            \caption{{Depth 11}}    
+        \end{subfigure}
+        \quad
+        \begin{subfigure}[b]{0.24\textwidth}   
+            \centering 
+            \includegraphics[width=\textwidth]{img/car-depth12.jpeg}
+            \caption{{Depth 12}}
+        \end{subfigure}
+    
+    \caption{Comparison of Poisson meshes generated using different octree depth values (Data: cars in a parking lot zoomed in)}
+    \label{fig:vizPoisson1}
+\end{figure}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{Implementation}
+    \begin{enumerate}
+        \item Python script writes shell commands for each process > shell script
+        \item Submit job from the shell script
+        \item Another Python script handles processing and meshing for each chunk/process
+        \begin{itemize}
+            \item Open3D's Python API is used for its implementation of basic 3D algorithms and 3D data structures
+        \end{itemize}
+    \end{enumerate}
+\end{frame}
+
+
+
+
+\begin{frame}[standout]
+    Thank you ~\alert{\faSmileO}~
+\end{frame}
+
+\end{document}
